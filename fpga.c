@@ -39,6 +39,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "osd.h"
 #include "fpga.h"
 #include "tos.h"
+#include "mist_cfg.h"
 
 #define CMD_HDRID 0xAACA
 
@@ -155,7 +156,7 @@ RAMFUNC unsigned char ConfigureFpga(char *name)
 
     if(!name)
     //  name = "CORE    BIN";
-		name = "XESM38  BIN";
+		name = "X7A102T BIN";
 
     // open bitstream file
     if (FileOpen(&file, name) == 0)
@@ -209,8 +210,8 @@ RAMFUNC unsigned char ConfigureFpga(char *name)
     }
     while (t < n);
 
-    // disable outputs
-    *AT91C_PIOA_ODR = XILINX_CCLK | XILINX_DIN | XILINX_PROG_B;
+    // return outputs to a state suitable for user_io.c
+    *AT91C_PIOA_SODR = XILINX_CCLK | XILINX_DIN | XILINX_PROG_B;
 
     iprintf("]\r");
     iprintf("FPGA bitstream loaded\r");
@@ -875,6 +876,8 @@ void fpga_init(char *name) {
   }
 
   user_io_detect_core_type();
+  mist_ini_parse();
+  user_io_send_buttons(1);
 
   if((user_io_core_type() == CORE_TYPE_MINIMIG)||
      (user_io_core_type() == CORE_TYPE_MINIMIG2)) {
@@ -883,9 +886,10 @@ void fpga_init(char *name) {
     if(minimig_v2()) {
       EnableOsd();
       SPI(OSD_CMD_VERSION);
-      char ver_beta  = SPI(0xff);
-      char ver_major = SPI(0xff);
-      char ver_minor = SPI(0xff);
+      char ver_beta   = SPI(0xff);
+      char ver_major  = SPI(0xff);
+      char ver_minor  = SPI(0xff);
+      char ver_minion = SPI(0xff);
       DisableOsd();
       SPIN(); SPIN(); SPIN(); SPIN();
       SPI(OSD_CMD_RST);
@@ -903,7 +907,7 @@ void fpga_init(char *name) {
       BootInit();
       WaitTimer(500);
       char rtl_ver[45];
-      siprintf(rtl_ver, "**** MINIMIG-AGA v%d.%d%s for MiST ****", ver_major, ver_minor, ver_beta ? " BETA" : "");
+      siprintf(rtl_ver, "**** MINIMIG-AGA%s v%d.%d.%d for MiST ****", ver_beta ? " BETA" : "", ver_major, ver_minor, ver_minion);
       BootPrintEx(rtl_ver);
       BootPrintEx(" ");
       BootPrintEx("MINIMIG-AGA for MiST by Rok Krajnc (rok.krajnc@gmail.com)");

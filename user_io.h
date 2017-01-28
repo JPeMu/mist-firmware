@@ -51,6 +51,7 @@
 #define UIO_SET_SDSTAT  0x1c  // set sd card status 
 #define UIO_SET_SDINFO  0x1d  // send info about mounted image
 #define UIO_SET_STATUS2 0x1e  // 32bit status
+#define UIO_GET_KBD_LED 0x1f  // keyboard LEDs control
 
 // codes as used by 8bit (atari 800, zx81) via SS2
 #define UIO_GET_STATUS  0x50
@@ -91,7 +92,21 @@
 #define JOY_L3     0x4000
 #define JOY_R3     0x8000
 
+// keyboard LEDs control 
+#define KBD_LED_CAPS_CONTROL  0x01
+#define KBD_LED_CAPS_STATUS   0x02
+#define KBD_LED_CAPS_MASK     (KBD_LED_CAPS_CONTROL | KBD_LED_CAPS_STATUS)
+#define KBD_LED_NUM_CONTROL   0x04
+#define KBD_LED_NUM_STATUS    0x08
+#define KBD_LED_NUM_MASK      (KBD_LED_NUM_CONTROL | KBD_LED_NUM_STATUS)
+#define KBD_LED_SCRL_CONTROL  0x10
+#define KBD_LED_SCRL_STATUS   0x20
+#define KBD_LED_SCRL_MASK     (KBD_LED_SCRL_CONTROL | KBD_LED_SCRL_STATUS)
+#define KBD_LED_FLAG_MASK     0xC0
+#define KBD_LED_FLAG_STATUS   0x40
+
 #define CONF_SCANDOUBLER_DISABLE 0x10
+#define CONF_YPBPR               0x20
 
 // core type value should be unlikely to be returned by broken cores
 #define CORE_TYPE_UNKNOWN   0x55
@@ -159,7 +174,7 @@ void user_io_eth_receive_tx_frame(uint8_t *, uint16_t);
 
 // hooks from the usb layer
 void user_io_mouse(unsigned char b, char x, char y);
-void user_io_kbd(unsigned char m, unsigned char *k, uint8_t priority); 
+void user_io_kbd(unsigned char m, unsigned char *k, uint8_t priority, unsigned short vid, unsigned short pid);
 char user_io_create_config_name(char *s);
 void user_io_digital_joystick(unsigned char, unsigned char);
 void user_io_analog_joystick(unsigned char, char, char);
@@ -167,6 +182,7 @@ char user_io_osd_is_visible();
 void user_io_send_buttons(char);
 
 void user_io_key_remap(char *);
+void add_modifiers(uint8_t mod, uint16_t* keys_ps2);
 
 void user_io_set_index(unsigned char index);
 unsigned char user_io_ext_idx(fileTYPE *, char*);

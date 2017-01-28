@@ -3,6 +3,7 @@
 
 
 //// includes ////
+#include <string.h>
 #include "ini_parser.h"
 #include "mist_cfg.h"
 #include "user_io.h"
@@ -16,6 +17,7 @@ void mist_ini_parse()
   hid_joystick_button_remap_init();
   virtual_joystick_remap_init();
   joy_key_map_init();
+  memset(&mist_cfg, 0, sizeof(mist_cfg));
   ini_parse(&mist_ini_cfg);
 }
 
@@ -28,7 +30,10 @@ mist_cfg_t mist_cfg = {
   .joystick_ignore_hat = 0,
   .joystick_ignore_osd = 0,
   .joystick_disable_shortcuts = 0,
-	.key_menu_as_rgui = 0
+  .key_menu_as_rgui = 0,
+  .keyrah_mode = 0,
+  .reset_combo = 0,
+  .ypbpr = 0
 };
 
 // mist ini sections
@@ -38,6 +43,9 @@ const ini_section_t mist_ini_sections[] = {
 
 // mist ini vars
 const ini_var_t mist_ini_vars[] = {
+  {"YPBPR", (void*)(&(mist_cfg.ypbpr)), UINT8, 0, 1, 1},
+  {"KEYRAH_MODE", (void*)(&(mist_cfg.keyrah_mode)), UINT8, 0, 1, 1},
+  {"RESET_COMBO", (void*)(&(mist_cfg.reset_combo)), UINT8, 0, 2, 1},
   {"SCANDOUBLER_DISABLE", (void*)(&(mist_cfg.scandoubler_disable)), UINT8, 0, 1, 1},
   {"MOUSE_BOOT_MODE", (void*)(&(mist_cfg.mouse_boot_mode)), UINT8, 0, 1, 1},
   {"JOYSTICK_IGNORE_HAT", (void*)(&(mist_cfg.joystick_ignore_hat)), UINT8, 0, 1, 1},

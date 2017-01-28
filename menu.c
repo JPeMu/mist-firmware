@@ -309,9 +309,6 @@ static void substrcpy(char *d, char *s, char idx) {
 #define STD_SPACE_EXIT "        SPACE to exit"
 #define STD_COMBO_EXIT " Hold ESC then SPACE to exit"
 
-#define JOY_VID 		 "VID:"
-#define JOY_PID 	   "PID:"
-
 #define HELPTEXT_DELAY 10000
 #define FRAME_DELAY 150
 
@@ -410,33 +407,7 @@ void get_joystick_state_usb( char *s, unsigned char joy_num ) {
 }
 			
 void append_joystick_usbid ( char *usb_id, unsigned int usb_vid, unsigned int usb_pid ) {
-	/*
-	appends a string with VID and PID numbers. 
-	Make sure to provide long enough string in usb_id
-	*/
-	unsigned short i;
-	char vid[5] = "    ";
-	char pid[5] = "    ";
-	itoa(usb_vid, vid, 16);
-	itoa(usb_pid, pid, 16);
-	if(strlen(vid)<4) {
-		for(i=5;i>0;i--) {
-			vid[i]=vid[i-1];
-		}
-		vid[0]='0';
-	}
-	if(strlen(pid)<4) {
-		for(i=5;i>0;i--) {
-			pid[i]=pid[i-1];
-		}
-		pid[0]='0';
-	}
-	strcat( usb_id, JOY_VID);
-	strcat( usb_id, vid);
-	strcat( usb_id, " ");
-	strcat( usb_id, JOY_PID);
-	strcat( usb_id, pid);
-	return;
+	siprintf(usb_id, "VID:%04X PID:%04X", usb_vid, usb_pid);
 }		
 		
 void get_joystick_id ( char *usb_id, unsigned char joy_num, short raw_id ) {
@@ -483,19 +454,6 @@ void get_joystick_id ( char *usb_id, unsigned char joy_num, short raw_id ) {
 }
 
 
-/* translates a USB modifier bit into a PS2 scancode */
-void assign_ps2_modifier ( uint8_t mod, uint8_t offset, uint16_t ps2_value, uint16_t* keys_ps2) {
-	uint8_t i;
-	if(mod&offset) {
-		for(i=0; i<4; i++) {
-			if(keys_ps2[i]==0) {
-				keys_ps2[i] = ps2_value;
-				return;
-			}
-		}
-	}
-}
-
 unsigned char getIdx(char *opt) {
 	if((opt[1]>='0') && (opt[1]<='9')) return opt[1]-'0';
 	if((opt[1]>='A') && (opt[1]<='V')) return opt[1]-'A'+10;
@@ -536,6 +494,24 @@ unsigned long getStatusMask(char *opt) {
 	//iprintf("grtStatusMask %d %d %x\n", idx1, idx2, x);
 
 	return x << idx1;
+}
+
+char* get_keycode_table()
+{
+	switch(user_io_core_type())
+	{
+		case CORE_TYPE_MINIMIG:
+		case CORE_TYPE_MINIMIG2:
+			return "Amiga";
+  
+		case CORE_TYPE_MIST:
+			return "  ST";
+
+		case CORE_TYPE_ARCHIE:
+			return "Archie";
+	}
+
+	return   " PS/2";
 }
 
 void HandleUI(void)
@@ -608,6 +584,7 @@ void HandleUI(void)
 			
 		case KEY_MENU:
 			menu = true;
+			OsdKeySet(KEY_MENU | KEY_UPSTROKE);
 			break;
 
 		// Within the menu the esc key acts as the menu key. problem:
@@ -721,7 +698,7 @@ void HandleUI(void)
 				else {
 					// the "menu" core is special in jumps directly to the core selection menu
 					if(!strcmp(user_io_get_core_name(), "MENU"))
-						SelectFile("RBF", SCAN_LFN, MENU_FIRMWARE_CORE_FILE_SELECTED, MENU_NONE1, 0);
+						SelectFile("RBF", SCAN_LFN, MENU_FIRMWARE_CORE_FILE_SELECTED, MENU_FIRMWARE1, 0);
 					else
 						menustate = MENU_8BIT_MAIN1;
 				}
@@ -1264,7 +1241,8 @@ void HandleUI(void)
 				s[15+i] = usb_id[i];
 			OsdWrite(2, s, 0,0);
 			OsdWrite(3, "", 0, 0);
-			OsdWrite(4, "       PS/2 scancodes", 0, 0);
+			siprintf(s, "      %s scancodes", get_keycode_table());
+			OsdWrite(4, s, 0,0);
 			//StateKeyboardPressedPS2(keys_ps2);
 			uint16_t keys_ps2b[6]={0,0,0,0,0,0};
 			siprintf(s, "   %4x %4x %4x %4x", keys_ps2b[0], keys_ps2b[1], keys_ps2b[2], keys_ps2b[3]); // keys_ps2[4], keys_ps2[5]);
@@ -1287,14 +1265,7 @@ void HandleUI(void)
 			OsdWrite(2, s, 0,0);
 			uint16_t keys_ps2[6]={0,0,0,0,0,0};
 			StateKeyboardPressedPS2(keys_ps2);
-			assign_ps2_modifier( mod, 0x1,  0x14, keys_ps2);   // LCTRL
-			assign_ps2_modifier( mod, 0x2,  0x12, keys_ps2);   // LSHIFT
-			assign_ps2_modifier( mod, 0x4,  0x11, keys_ps2);   // LALT
-			assign_ps2_modifier( mod, 0x8,  0xE01F, keys_ps2); // LGUI
-			assign_ps2_modifier( mod, 0x10, 0xE014, keys_ps2); // RCTRL
-			assign_ps2_modifier( mod, 0x20, 0x59, keys_ps2);   // RSHIFT
-			assign_ps2_modifier( mod, 0x40, 0xE011, keys_ps2); // RALT
-			assign_ps2_modifier( mod, 0x80, 0xE027, keys_ps2); // RGUI
+			add_modifiers(mod, keys_ps2);
 			siprintf(s, "   %4x %4x %4x %4x ", keys_ps2[0], keys_ps2[1], keys_ps2[2], keys_ps2[3]);// keys_ps2[4], keys_ps2[5]);
 			OsdWrite(5, s, 0, 0);
 			//OsdWrite(5, "", 0, 0);					
@@ -3332,7 +3303,7 @@ void HandleUI(void)
 					break;
 				default:
 					menusub = 0;
-					menustate = MENU_8BIT_SYSTEM1;
+					menustate = (!strcmp(user_io_get_core_name(), "MENU")) ? MENU_NONE1 : MENU_8BIT_SYSTEM1;
 					break;
 				}
 			}
@@ -3360,7 +3331,7 @@ void HandleUI(void)
 						break;
 					default:
 						menusub = 0;
-						menustate = MENU_8BIT_SYSTEM1;
+						menustate = (!strcmp(user_io_get_core_name(), "MENU")) ? MENU_NONE1 : MENU_8BIT_SYSTEM1;
 						break;
 					}
 				}
@@ -3383,9 +3354,6 @@ void HandleUI(void)
 			// reset fpga with core
 			fpga_init(file.name);
 
-			// make sure new config gets current button/dip status
-			user_io_send_buttons(1);
-			
 			menustate = MENU_NONE1;
 			break;
 
